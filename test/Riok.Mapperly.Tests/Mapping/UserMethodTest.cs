@@ -85,6 +85,41 @@ public class UserMethodTest
     }
 
     [Fact]
+    public void ShouldAutoUseVoidMethodWithRefTargetParameter()
+    {
+        var source = TestSourceBuilder.MapperWithBodyAndTypes(
+            """
+            public static partial void Update([MappingTarget] B target, A source);
+            private static void MapWrapper(StringWrapper src, ref string target)
+            {
+                target = src.Value;
+            }
+            """,
+            "public class A { public StringWrapper Name { get; set; } }",
+            "public class B { public string Name { get; set; } }",
+            """
+            public struct StringWrapper
+            {
+                public StringWrapper(string value) { Value = value; }
+                public string Value { get; }
+            }
+            """
+        );
+
+        TestHelper
+            .GenerateMapper(source)
+            .Should()
+            .HaveMethodBody(
+                "Update",
+                """
+                var targetRef = target.Name;
+                MapWrapper(source.Name, ref targetRef);
+                target.Name = targetRef;
+                """
+            );
+    }
+
+    [Fact]
     public void WithExistingInstance()
     {
         var source = TestSourceBuilder.MapperWithBodyAndTypes(
