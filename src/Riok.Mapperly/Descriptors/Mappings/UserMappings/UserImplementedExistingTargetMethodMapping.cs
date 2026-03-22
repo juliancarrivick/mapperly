@@ -26,6 +26,8 @@ public class UserImplementedExistingTargetMethodMapping(
 
     public bool IsExternal { get; } = isExternal;
 
+    public bool IsRefTarget => targetParameter.RefKind == RefKind.Ref;
+
     public override IEnumerable<StatementSyntax> Build(TypeMappingBuildContext ctx, ExpressionSyntax target)
     {
         // if the user implemented method is on an interface,

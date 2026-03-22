@@ -261,6 +261,22 @@ public class MappingBuilderContext : SimpleMappingBuilderContext
     /// </summary>
     /// <param name="mappingName">The name of the mapping.</param>
     /// <returns>The found mapping, or <c>null</c> if none is found.</returns>
+    public bool HasExistingTargetRefUserMapping(TypeMappingKey mappingKey)
+    {
+        // For same-type mappings, direct assignment is always preferred over a user ref method.
+        // The user should use [MapProperty(Use = nameof(...))] to opt in explicitly.
+        if (SymbolEqualityComparer.Default.Equals(mappingKey.Source, mappingKey.Target))
+            return false;
+
+        // If a new-instance user mapping already covers these types, prefer that over the ref method.
+        if (FindMapping(mappingKey) is INewInstanceUserMapping || FindMapping(mappingKey.NonNullable()) is INewInstanceUserMapping)
+            return false;
+
+        return ExistingTargetMappingBuilder.Find(mappingKey) is UserImplementedExistingTargetMethodMapping { IsRefTarget: true }
+            || ExistingTargetMappingBuilder.Find(mappingKey.NonNullable())
+                is UserImplementedExistingTargetMethodMapping { IsRefTarget: true };
+    }
+
     public IExistingTargetMapping? FindExistingTargetNamedMapping(string mappingName)
     {
         var mapping = ExistingTargetMappingBuilder.FindOrResolveNamed(this, mappingName, out var ambiguousName);
